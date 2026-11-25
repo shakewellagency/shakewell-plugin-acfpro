@@ -1,0 +1,30 @@
+name: Tag release
+
+# Tags main with the plugin's version once a reviewed update is merged.
+
+on:
+  push:
+    branches: [main]
+    paths: [acf.php]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag the plugin version
+        run: |
+          VERSION="$(sed -nE 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*([0-9.]+).*/\1/p' acf.php | head -1)"
+          if [ -z "$VERSION" ]; then echo "::error::Could not read the version from acf.php"; exit 1; fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "v$VERSION is already tagged."
+            exit 0
+          fi
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+          echo "Tagged v$VERSION"

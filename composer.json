@@ -1,0 +1,13 @@
+{
+    "name": "shakewellagency/shakewell-plugin-acfpro",
+    "description": "Composer mirror of the Advanced Custom Fields PRO WordPress plugin.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://www.advancedcustomfields.com",
+    "require": {
+        "composer/installers": "^1.0 || ^2.0"
+    },
+    "extra": {
+        "installer-name": "advanced-custom-fields-pro"
+    }
+}

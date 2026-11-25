@@ -1,0 +1,50 @@
+name: Sync upstream
+
+# Opens a pull request when the upstream mirror has a newer ACF PRO release.
+# It never tags or releases: a person reviews and merges, then tag.yml tags.
+
+on:
+  schedule:
+    - cron: '17 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy the newest upstream release
+        id: sync
+        env:
+          REPORT: ${{ runner.temp }}/sync-report.md
+        run: ./.github/scripts/sync.sh
+
+      - name: Open a pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.sync.outputs.version }}
+          REPORT: ${{ runner.temp }}/sync-report.md
+        run: |
+          BRANCH="sync/v$VERSION"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists; a pull request is already open or was closed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -q -m "Update ACF PRO to $VERSION"
+          git push -q origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Update ACF PRO to $VERSION" --body-file "$REPORT"
